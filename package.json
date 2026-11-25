@@ -1,0 +1,10 @@
+{
+  "name": "yt-boquets-returngifts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Bouquets & return gifts shop for Netlify",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}

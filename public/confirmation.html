@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Order Received | YT_Boquets_ReturnGifts</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/app.js"></script>
+</head>
+<body>
+<main>
+<div class="success">
+<h1>🎉 Order Received!</h1>
+<p>Your order number is:</p><h2 id="num"></h2>
+<p>Total: <strong id="total"></strong></p>
+<p>We will contact you on WhatsApp to confirm your order.</p>
+<a class="btn" href="/track.html" id="track">Track Your Order</a>
+<a class="btn whatsapp" id="wa" target="_blank" rel="noopener">WhatsApp Us</a>
+</div>
+</main>
+<script>
+
+const q = new URLSearchParams(location.search);
+const num = q.get("order") || "";
+$("#num").textContent = num;
+$("#total").textContent = money(q.get("total") || 0);
+$("#track").href = "/track.html?order=" + encodeURIComponent(num);
+$("#wa").href = `https://wa.me/${CONFIG.whatsapp}?text=` + encodeURIComponent("Hi, my order number is " + num);
+</script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Admin | YT_Boquets_ReturnGifts</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/app.js"></script>
+</head>
+<body>
+<main>
+<div id="login" class="hidden">
+  <h1>Admin Login</h1>
+  <form class="form small" id="login-form">
+    <label>Username<input name="username" required></label>
+    <label>Password<input type="password" name="password" required></label>
+    <p class="error" id="login-err"></p>
+    <button class="btn" type="submit">Login</button>
+  </form>
+</div>
+<div id="dash" class="hidden">
+  <div class="admin-head"><h1>Admin Dashboard</h1><a href="#" id="logout">Logout</a></div>
+  <h2>Orders</h2>
+  <div style="overflow-x:auto"><table id="orders"></table></div>
+  <h2>Products</h2>
+  <div style="overflow-x:auto"><table id="products"></table></div>
+  <h2>Add Product</h2>
+  <form class="form product-form" id="product-form">
+    <input name="name" placeholder="Product name" required>
+    <input name="price" type="number" step="0.01" placeholder="Price" required>
+    <input name="category" placeholder="Category" value="Bouquets">
+    <input name="image" placeholder="Image filename (in /images) or full URL (optional)">
+    <textarea name="description" placeholder="Description"></textarea>
+    <button class="btn">Add Product</button>
+  </form>
+</div>
+</main>
+<script>
+
+let token = sessionStorage.getItem("adminToken");
+const show = (loggedIn) => { $("#login").classList.toggle("hidden", loggedIn); $("#dash").classList.toggle("hidden", !loggedIn); };
+
+async function load() {
+  try {
+    const { orders, products, statuses } = await api("admin/data", { token });
+    show(true);
+    $("#orders").innerHTML = `<tr><th>Order</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th><th>Action</th></tr>` +
+      (orders.map((o) => `<tr>
+        <td>${esc(o.order_number)}<br><small>${new Date(o.created_at).toLocaleString("en-IN")}</small>
+            ${o.delivery_date ? `<br><small>Deliver: ${esc(o.delivery_date)}</small>` : ""}</td>
+        <td>${esc(o.customer.name)}<br>${esc(o.customer.phone)}<br>${esc(o.customer.address)}, ${esc(o.customer.city)} - ${esc(o.customer.pincode)}
+            ${o.special_instructions ? `<br><small><em>${esc(o.special_instructions)}</em></small>` : ""}</td>
+        <td>${o.items.map((i) => `${esc(i.name)} × ${i.quantity}`).join("<br>")}</td>
+        <td>${money(o.total_amount)}</td>
+        <td><strong>${esc(o.status)}</strong></td>
+        <td><select data-order="${esc(o.order_number)}">${statuses.map((s) => `<option ${s === o.status ? "selected" : ""}>${esc(s)}</option>`).join("")}</select>
+            <button class="btn smallbtn" data-update="${esc(o.order_number)}">Update</button></td>
+      </tr>`).join("") || `<tr><td colspan="6">No orders yet.</td></tr>`);
+    $("#products").innerHTML = `<tr><th>ID</th><th>Name</th><th>Category</th><th>Price</th><th></th></tr>` +
+      products.map((p) => `<tr><td>${p.id}</td><td>${esc(p.name)}</td><td>${esc(p.category)}</td><td>${money(p.price)}</td>
+        <td><button class="btn secondary smallbtn" data-del="${p.id}">Delete</button></td></tr>`).join("");
+  } catch (err) {
+    if (err.status === 401) { sessionStorage.removeItem("adminToken"); token = null; show(false); }
+    else alert(err.message);
+  }
+}
+
+$("#login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = Object.fromEntries(new FormData(e.target));
+  try {
+    token = (await api("admin/login", { method: "POST", body: f })).token;
+    sessionStorage.setItem("adminToken", token);
+    load();
+  } catch (err) { $("#login-err").textContent = err.message; }
+});
+$("#logout").onclick = (e) => { e.preventDefault(); sessionStorage.removeItem("adminToken"); token = null; show(false); };
+
+$("#orders").addEventListener("click", async (e) => {
+  const num = e.target.dataset.update; if (!num) return;
+  const status = document.querySelector(`select[data-order="${num}"]`).value;
+  await api(`admin/orders/${encodeURIComponent(num)}/status`, { method: "POST", token, body: { status } });
+  load();
+});
+$("#products").addEventListener("click", async (e) => {
+  const id = e.target.dataset.del;
+  if (!id || !confirm("Delete this product?")) return;
+  await api("admin/products/" + id, { method: "DELETE", token });
+  load();
+});
+$("#product-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  try {
+    await api("admin/products", { method: "POST", token, body: Object.fromEntries(new FormData(e.target)) });
+    e.target.reset(); load();
+  } catch (err) { alert(err.message); }
+});
+
+token ? load() : show(false);
+</script>
+</body>
+</html>

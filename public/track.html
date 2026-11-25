@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Track Order | YT_Boquets_ReturnGifts</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/app.js"></script>
+</head>
+<body>
+<main>
+<h1>Track Your Order</h1>
+<form class="form small" id="form">
+<label>Order Number<input name="order_number" id="num" placeholder="ORD-20261125-123456-AB12" required></label>
+<button class="btn" type="submit">Track</button>
+</form>
+<div id="result"></div>
+</main>
+<script>
+
+async function track(num) {
+  try {
+    const o = await api("orders/" + encodeURIComponent(num.trim()));
+    $("#result").innerHTML = `<div class="status-box">
+      <h2>${esc(o.order_number)}</h2><div class="status">${esc(o.status)}</div>
+      <p>Last updated: ${new Date(o.updated_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</p>
+      <p>Total: ${money(o.total)}</p></div>`;
+  } catch { $("#result").innerHTML = `<p class="error">Order not found. Please check the order number.</p>`; }
+}
+$("#form").addEventListener("submit", (e) => { e.preventDefault(); track($("#num").value); });
+const pre = new URLSearchParams(location.search).get("order");
+if (pre) { $("#num").value = pre; track(pre); }
+</script>
+</body>
+</html>
